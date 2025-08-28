@@ -1,15 +1,16 @@
 const bcrypt = require('bcrypt')
 const usersRouter = require('express').Router()
 const User = require('../models/user')
+const Blog = require('../models/blog')
 
 usersRouter.get('/', async (request, response) => {
-    const users = await User.find({})
+    const users = await User.find({}).populate('blogs', {title: 1, author: 1, url: 1})
     response.json(users)
 })
 
 usersRouter.post('/', async (request, response) => {
-    const {username, name, password} = request.body
-
+    const {username, name, blogID, password} = request.body
+    const blog = await Blog.findById(blogID)
     if (!username) {
         return response.status(400).json({
             error: 'username missing'
@@ -42,9 +43,11 @@ usersRouter.post('/', async (request, response) => {
     const user = new User({
         username,
         name,
+        blogs: [blog._id],
         passwordHash
     })
 
+    user.blogs = user.blogs.concat(blog._id)
     const savedUser = await user.save()
 
     response.status(201).json(savedUser)
